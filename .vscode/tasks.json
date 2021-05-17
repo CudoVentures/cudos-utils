@@ -1,0 +1,11 @@
+{
+    "version": "2.0.0",
+    "tasks": [
+        {
+            "label": "Start big dipper locally",
+            "command": "cd ./project-explorer && meteor --settings default_settings.json --allow-superuser",
+            "type": "shell",
+            "group": "build"
+        }
+    ]
+}
