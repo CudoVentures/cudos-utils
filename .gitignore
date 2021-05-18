@@ -3,10 +3,7 @@ frontend/dist
 frontend/.cache
 secret.yml
 cudos-data
-faucelt.wallet.txt
-secrets.json
 node_modules
 .idea
 cudos-noded
 libwasmvm.so
-/tools/deployer-utils/temp
