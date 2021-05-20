@@ -4,13 +4,13 @@ import (
 	"bytes"
 	"context"
 	"encoding/json"
-	"flag"
 	"errors"
+	"flag"
 	"fmt"
-	"time"
 	"io/ioutil"
 	"net/http"
 	"strings"
+	"time"
 
 	log "github.com/sirupsen/logrus"
 
@@ -123,7 +123,7 @@ func main() {
 
 	http.HandleFunc("/", func(w http.ResponseWriter, r *http.Request) {
 		originHeader := r.Header.Get("Origin")
-		if originHeader == "http://localhost:3000" || originHeader == "http://35.238.210.147:3000" {
+		if originHeader == "http://localhost:3000" || originHeader == "http://35.192.177.142:3000" {
 			w.Header().Set("Access-Control-Allow-Origin", originHeader)
 			w.Header().Set("Access-Control-Allow-Headers", "Accept, Content-Type, Content-Length, Accept-Encoding, X-CSRF-Token, Authorization")
 			w.Header().Set("Access-Control-Allow-Methods", "POST, GET, OPTIONS, PUT, DELETE")
@@ -138,10 +138,9 @@ func main() {
 
 		var req TransferRequest
 		err := json.NewDecoder(rdr1).Decode(&req)
-		
 
 		if err == nil {
-			captchaErr := checkCaptchaWithKey(req.CaptchaResponse);
+			captchaErr := checkCaptchaWithKey(req.CaptchaResponse)
 
 			if captchaErr != nil {
 				http.Error(w, "Wrong captcha", http.StatusUnauthorized)
