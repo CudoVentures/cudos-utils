@@ -3,7 +3,7 @@
     "tasks": [
         {
             "label": "Start big dipper locally",
-            "command": "cd ./project-explorer && meteor --settings default_settings.json --allow-superuser",
+            "command": "cd ./project-explorer && meteor reset && meteor --settings default_settings.json --allow-superuser",
             "type": "shell",
             "group": "build"
         }

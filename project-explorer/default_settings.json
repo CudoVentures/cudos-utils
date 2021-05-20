@@ -13,15 +13,15 @@
         "bech32PrefixValPub": "cudosvaloperpub",
         "bech32PrefixConsAddr": "cudosvalcons",
         "bech32PrefixConsPub": "cudosvalconspub",
-        "bondDenom": "ucudos",
-        "powerReduction": 1000000,
+        "bondDenom": "acudos",
+        "powerReduction": 1000000000000000000,
         "genesisTime": "2021-05-12T11:33:06.992163482Z",
         "faucetUrl": "http://localhost:5000",
         "coins": [
             {
-                "denom": "ucudos",
+                "denom": "acudos",
                 "displayName": "CUDOS",
-                "fraction": 1000000
+                "fraction": 1000000000000000000
             } 
         ],
         "ledger":{
@@ -44,15 +44,15 @@
         },
         "fees": {
             "delegate": {
-                "amount": [{"denom": "ucudos", "amount": 100}],
+                "amount": [{"denom": "acudos", "amount": 100}],
                 "gas": "180000"
             },
             "redelegate": {
-                "amount": [{"denom": "ucudos", "amount": 100}],
+                "amount": [{"denom": "acudos", "amount": 100}],
                 "gas": "180000"
             },
             "undelegate": {
-                "amount": [{"denom": "ucudos", "amount": 100}],
+                "amount": [{"denom": "acudos", "amount": 100}],
                 "gas": "180000"
             },
             "withdraw": {
