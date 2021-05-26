@@ -62,10 +62,10 @@ export default class Faucet extends Component {
             });
 
             const address = this.state.walletAddress;
-            const amount = parseInt(parseFloat(this.state.amount * Meteor.settings.public.coins[0].fraction))
+            const amount = parseInt(parseFloat(this.state.amount * Meteor.settings.public.coins[4].fraction))
             const data = {
                 address: address,
-                coins: [`${amount}${Meteor.settings.public.bondDenom}`],
+                coins: [`${amount}${Meteor.settings.public.coins[4].denom}`],
                 captchaResponse
             };
 
@@ -132,7 +132,7 @@ export default class Faucet extends Component {
                     <h1 className="text-center mt-5"><T>faucet.title</T></h1>
                     <Input value={this.state.walletAddress} onChange={this.onChangeWalletAddress} placeholder={i18n.__('faucet.placeHolderWalletAddress').replace('%s', Meteor.settings.public.bech32PrefixAccAddr)}/>
                     <br />
-                    <Input value={this.state.amount} onChange={this.onChangeAmount} placeholder={i18n.__('faucet.placeHolderAmount').replace('%s', Meteor.settings.public.coins[0].displayName)}/>
+                    <Input value={this.state.amount} onChange={this.onChangeAmount} placeholder={i18n.__('faucet.placeHolderAmount').replace('%s', Meteor.settings.public.coins[1].displayName)}/>
                     <br />
                     <CaptchaWrapper ref={ this.nodes.captcha } className="d-flex justify-content-center" />
                     <div className="d-flex justify-content-center mt-5">

@@ -13,8 +13,10 @@ const (
 )
 
 var (
+	captchSiteKey   string
+	googleApiKey    string
+	googleProjectId string
 	port            int
-	captchBackend	string
 	keyringBackend  string
 	sdkVersion      string
 	keyName         string
@@ -33,9 +35,17 @@ func init() {
 		environ.GetInt("PORT", 8000),
 		"tcp port where faucet will be listening for requests",
 	)
-	flag.StringVar(&captchBackend, "captcha-backend",
-		environ.GetString("CAPTCHA_BACKEND", ""),
-		"backend key of recaptcha",
+	flag.StringVar(&captchSiteKey, "captcha-site-key",
+		environ.GetString("CAPTCHA_SITE_KEY", ""),
+		"site key of recaptcha",
+	)
+	flag.StringVar(&googleApiKey, "google-api-key",
+		environ.GetString("GOOGLE_API_KEY", ""),
+		"google api key",
+	)
+	flag.StringVar(&googleProjectId, "google-project-id",
+		environ.GetString("GOOGLE_PROJECT_ID", ""),
+		"google project id",
 	)
 	flag.StringVar(&keyringBackend, "keyring-backend",
 		environ.GetString("KEYRING_BACKEND", ""),

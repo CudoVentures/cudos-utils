@@ -3,7 +3,7 @@
         "chainName": "CudosNetwork",
         "chainId": "cudos-network",
         "gtm": "",
-        "slashingWindow": 10000,
+        "slashingWindow": 400,
         "uptimeWindow": 250,
         "initialPageSize": 30,
         "secp256k1": true,
@@ -22,6 +22,36 @@
                 "denom": "acudos",
                 "displayName": "CUDOS",
                 "fraction": 1000000000000000000
+            },
+            {
+                "denom": "fcudos",
+                "displayName": "CUDOS",
+                "fraction": 1000000000000000
+            },
+            {
+                "denom": "pcudos",
+                "displayName": "CUDOS",
+                "fraction": 1000000000000
+            },
+            {
+                "denom": "ncudos",
+                "displayName": "CUDOS",
+                "fraction": 1000000000
+            },
+            {
+                "denom": "ucudos",
+                "displayName": "CUDOS",
+                "fraction": 1000000
+            },
+            {
+                "denom": "mcudos",
+                "displayName": "CUDOS",
+                "fraction": 1000
+            },
+            {
+                "denom": "cudos",
+                "displayName": "CUDOS",
+                "fraction": 1
             } 
         ],
         "ledger":{
@@ -60,7 +90,7 @@
                 "gas": "180000"
             }
         },
-        "CAPTCHA_FRONTEND_KEY": "6Ldjs9EaAAAAABJ3DZHmjeNjChAunXrWmHREaB05"
+        "CAPTCHA_FRONTEND_KEY": "6LfIPO0aAAAAAG7oSw9JSmi6E58IRuhVQYzKShHl"
     },
     "remote":{
         "rpc":"http://localhost:26657",

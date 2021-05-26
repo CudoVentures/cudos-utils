@@ -8,6 +8,7 @@ import (
 	"flag"
 	"fmt"
 	"io/ioutil"
+	"math/big"
 	"net/http"
 	"strings"
 	"time"
@@ -20,6 +21,8 @@ import (
 	"github.com/tendermint/starport/starport/pkg/cosmosfaucet"
 	"github.com/tendermint/starport/starport/pkg/cosmosver"
 	"github.com/tendermint/starport/starport/pkg/xhttp"
+
+	recaptchapb "google.golang.org/genproto/googleapis/cloud/recaptchaenterprise/v1"
 )
 
 type SiteVerifyResponse struct {
@@ -32,44 +35,9 @@ type SiteVerifyResponse struct {
 }
 
 type TransferRequest struct {
-	// AccountAddress to request for coins.
-	AccountAddress string `json:"address"`
-
-	// Coins that are requested.
-	// default ones used when this one isn't provided.
-	Coins []string `json:"coins"`
-
-	CaptchaResponse string `json: "captchaResponse"`
-}
-
-func checkCaptchaWithKey(captcha string) error {
-	siteVerifyURL := "https://www.google.com/recaptcha/api/siteverify"
-	req, err := http.NewRequest(http.MethodPost, siteVerifyURL, nil)
-
-	q := req.URL.Query()
-	q.Add("secret", captchBackend)
-	q.Add("response", captcha)
-	req.URL.RawQuery = q.Encode()
-
-	// Make request
-	resp, err := http.DefaultClient.Do(req)
-	if err != nil {
-		return err
-	}
-	defer resp.Body.Close()
-
-	// Decode response.
-	var body SiteVerifyResponse
-	if err = json.NewDecoder(resp.Body).Decode(&body); err != nil {
-		return err
-	}
-
-	// Check recaptcha verification success.
-	if !body.Success {
-		return errors.New("unsuccessful recaptcha verify request")
-	}
-
-	return nil
+	AccountAddress  string   `json:"address"`
+	Coins           []string `json:"coins"`
+	CaptchaResponse string   `json: "captchaResponse"`
 }
 
 func main() {
@@ -101,6 +69,7 @@ func main() {
 			chaincmd.WithLaunchpadCLI(appCli),
 		)
 	}
+
 	cr, err := chaincmdrunner.New(context.Background(), chaincmd.New(appCli, ccoptions...))
 	if err != nil {
 		log.Fatal(err)
@@ -116,14 +85,13 @@ func main() {
 	faucetOptions = append(faucetOptions, cosmosfaucet.Account(keyName, keyMnemonic))
 
 	faucet, err := cosmosfaucet.New(context.Background(), cr, faucetOptions...)
-
 	if err != nil {
 		log.Fatal(err)
 	}
 
 	http.HandleFunc("/", func(w http.ResponseWriter, r *http.Request) {
 		originHeader := r.Header.Get("Origin")
-		if originHeader == "http://localhost:3000" || originHeader == "http://35.192.177.142:3000" {
+		if originHeader == "http://localhost:3000" || originHeader == "http://35.192.177.142:3000" || originHeader == "http://explorer.cudos.org" || originHeader == "https://explorer.cudos.org" {
 			w.Header().Set("Access-Control-Allow-Origin", originHeader)
 			w.Header().Set("Access-Control-Allow-Headers", "Accept, Content-Type, Content-Length, Accept-Encoding, X-CSRF-Token, Authorization")
 			w.Header().Set("Access-Control-Allow-Methods", "POST, GET, OPTIONS, PUT, DELETE")
@@ -134,7 +102,6 @@ func main() {
 
 		buf, _ := ioutil.ReadAll(r.Body)
 		rdr1 := ioutil.NopCloser(bytes.NewBuffer(buf))
-		rdr2 := ioutil.NopCloser(bytes.NewBuffer(buf))
 
 		var req TransferRequest
 		err := json.NewDecoder(rdr1).Decode(&req)
@@ -165,12 +132,61 @@ func main() {
 					})
 					return
 				}
+
+				bigCoinAmount := new(big.Int).SetUint64(amount)
+				bigCoinMultiplier := new(big.Int).SetUint64(1000000000000)
+				bigCoinAmount.Mul(bigCoinAmount, bigCoinMultiplier)
+
+				req.Coins[0] = fmt.Sprintf("%sacudos", bigCoinAmount.String())
+				reqBytes, _ := json.Marshal(req)
+				rdr2 := ioutil.NopCloser(bytes.NewBuffer(reqBytes))
+				r.Body = rdr2
+				faucet.ServeHTTP(w, r)
 			}
 		}
-
-		r.Body = rdr2
-		faucet.ServeHTTP(w, r)
 	})
 	log.Infof("listening on :%d", port)
 	log.Fatal(http.ListenAndServe(fmt.Sprintf(":%d", port), nil))
+}
+
+func checkCaptchaWithKey(captcha string) error {
+	event := &recaptchapb.Event{
+		Token:          captcha,
+		SiteKey:        captchSiteKey,
+		ExpectedAction: "login",
+	}
+
+	assessment := &recaptchapb.Assessment{
+		Event: event,
+	}
+
+	reqJson, err := json.Marshal(assessment)
+	if err != nil {
+		return err
+	}
+
+	siteVerifyURL := "https://recaptchaenterprise.googleapis.com/v1beta1/projects/" + googleProjectId + "/assessments?key=" + googleApiKey
+	req, err := http.NewRequest(http.MethodPost, siteVerifyURL, bytes.NewBuffer(reqJson))
+	if err != nil {
+		return err
+	}
+
+	// Make request
+	resp, err := http.DefaultClient.Do(req)
+	if err != nil {
+		return err
+	}
+	defer resp.Body.Close()
+
+	// Decode response
+	var body SiteVerifyResponse
+	if err = json.NewDecoder(resp.Body).Decode(&body); err != nil {
+		return err
+	}
+
+	if body.Score <= 0.6999 {
+		return errors.New("invalid captcha")
+	}
+
+	return nil
 }
