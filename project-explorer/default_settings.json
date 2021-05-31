@@ -1,7 +1,7 @@
 {
     "public":{
         "chainName": "CudosNetwork",
-        "chainId": "cudos-network",
+        "chainId": "cudos-local-network",
         "gtm": "",
         "slashingWindow": 400,
         "uptimeWindow": 250,
