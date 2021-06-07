@@ -11,7 +11,10 @@ import Coin from '/both/utils/coins.js';
 import numbro from 'numbro';
 import TimeStamp from '../components/TimeStamp.jsx';
 import { PropTypes } from 'prop-types';
-import { assertIsBroadcastTxSuccess, SigningStargateClient, StargateClient } from "@cosmjs/stargate";
+import { assertIsBroadcastTxSuccess, SigningStargateClient, defaultRegistryTypes } from "@cosmjs/stargate";
+import {Registry} from "@cosmjs/proto-signing";
+import {MsgSubmitProposal, MsgDeposit, MsgVote} from "./cosmos/gov/v1beta1/tx";
+import {TextProposal} from "./cosmos/gov/v1beta1/gov"; // Replace with your own Msg import
 
 const maxHeightModifier = {
     setMaxHeight: {
@@ -449,6 +452,14 @@ class LedgerButton extends Component {
         if (this.state.signing) {
             return;
         }
+        const myRegistry = new Registry([
+            ...defaultRegistryTypes,
+            ["/cosmos.gov.v1beta1.MsgSubmitProposal", MsgSubmitProposal],
+            ["/cosmos.gov.v1beta1.MsgDeposit", MsgDeposit],
+            ["/cosmos.gov.v1beta1.MsgVote", MsgVote],
+             // Replace with your own type URL and Msg class
+        ]);
+    
 
         this.initStateOnLoad('signing')
 
@@ -459,7 +470,9 @@ class LedgerButton extends Component {
             const offlineSigner = window.getOfflineSigner(chainId);
 
             const rpcEndpoint = Meteor.settings.public.urls.rpc;
-            const client = await SigningStargateClient.connectWithSigner(rpcEndpoint, offlineSigner);
+            const client = await SigningStargateClient.connectWithSigner(rpcEndpoint, offlineSigner, {
+                registry: myRegistry,
+            });
 
             const account = (await offlineSigner.getAccounts())[0];
 
