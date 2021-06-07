@@ -163,7 +163,7 @@ proposals:
     proposer: 'Proposer'
     proposal: 'proposal'
     proposals: 'Proposals'
-    proposalID: 'Proposal ID'
+    proposalId: 'Proposal ID'
     title: 'Title'
     status: 'Status'
     submitTime: 'Submit Time'

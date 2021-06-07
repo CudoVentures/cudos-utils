@@ -147,7 +147,7 @@ proposals:
     proposer: 'Предлагающий'
     proposal: 'Предложение'
     proposals: 'Предложения'
-    proposalID: 'ID предложений'
+    proposalId: 'ID предложений'
     title: 'Название'
     status: 'Статус'
     submitTime: 'Время Отправки'

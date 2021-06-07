@@ -148,7 +148,7 @@ proposals:
     proposer: 'Proponente'
     proposal: 'Proposta'
     proposals: 'Proposte'
-    proposalID: 'ID Proposta'
+    proposalId: 'ID Proposta'
     title: 'Titolo'
     status: 'Stato'
     submitTime: 'Ora invio'

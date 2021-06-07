@@ -2,6 +2,8 @@
 // https://github.com/zondax/cosmos-delegation-js/
 // https://github.com/cosmos/ledger-cosmos-js/blob/master/src/index.js
 import 'babel-polyfill';
+
+import Long from "long";
 import TransportWebUSB from "@ledgerhq/hw-transport-webusb";
 import CosmosApp from "ledger-cosmos-js"
 import { signatureImport } from "secp256k1"
@@ -14,6 +16,7 @@ import CryptoJS from "crypto-js"
 import { MsgDelegate, MsgUndelegate, MsgBeginRedelegate } from "@cosmjs/stargate/build/codec/cosmos/staking/v1beta1/tx"; 
 import { MsgSend } from "@cosmjs/stargate/build/codec/cosmos/bank/v1beta1/tx"; 
 import { MsgWithdrawDelegatorReward } from "@cosmjs/stargate/build/codec/cosmos/distribution/v1beta1/tx";
+import { VoteOption } from "./cosmos/gov/v1beta1/gov";
 
 // TODO: discuss TIMEOUT value
 const INTERACTION_TIMEOUT = 10000
@@ -65,6 +68,7 @@ function createCosmosAddress(publicKey) {
 export class Ledger {
     constructor({ testModeAllowed }) {
         this.testModeAllowed = testModeAllowed
+        
     }
 
     // test connection and compatibility
@@ -488,11 +492,15 @@ export class Ledger {
         proposalId,
         option,
     ) {
+        
+        let voteOptionInt = getVoteOptionIntValue(option);
+
+
         const msgAny = [{
-            type: 'cosmos-sdk/MsgVote',
+            typeUrl: "/cosmos.gov.v1beta1.MsgVote",
             value: {
-                option,
-                proposal_id: proposalId.toString(),
+                option: voteOptionInt,
+                proposalId: new Long(proposalId),
                 voter: txContext.bech32
             }
         }];
@@ -500,20 +508,24 @@ export class Ledger {
         return {msgAny, fee: Meteor.settings.public.fees.redelegate};
     }
 
-    static createDeposit() {
-        const txMsg = {
-            type: 'cosmos-sdk/MsgDeposit',
+
+    static createDeposit(
+        txContext,
+        proposalId,
+        amount) {
+        const msgAny = [{
+            typeUrl: "/cosmos.gov.v1beta1.MsgDeposit", // Same as above
             value: {
                 amount: [{
                     amount: amount.toString(),
                     denom: txContext.denom
                 }],
                 depositor: txContext.bech32,
-                proposal_id: proposalId.toString()
-            }
-        };
+                proposalId: new Long(proposalId),
+            },
+        }]; 
 
-        return Ledger.createSkeleton(txContext, [txMsg]);
+        return {msgAny, fee: Meteor.settings.public.fees.redelegate};
     }
 
 }
@@ -545,3 +557,20 @@ function canonicalizeJson(jsonTx) {
 
     return tmp;
 }
+
+function getVoteOptionIntValue(option){
+    switch(option){
+    default:
+    case "Unspecified":
+        return VoteOption.VOTE_OPTION_UNSPECIFIED;
+    case "Yes":
+        return VoteOption.VOTE_OPTION_YES;
+    case "Abstain":
+        return VoteOption.VOTE_OPTION_ABSTAIN;
+    case "No":
+        return VoteOption.VOTE_OPTION_NO;
+    case "NoWithVeto":
+        return VoteOption.VOTE_OPTION_NO_WITH_VETO;
+    } 
+}
+
