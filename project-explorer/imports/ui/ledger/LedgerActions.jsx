@@ -14,7 +14,7 @@ import { PropTypes } from 'prop-types';
 import { assertIsBroadcastTxSuccess, SigningStargateClient, defaultRegistryTypes } from "@cosmjs/stargate";
 import {Registry} from "@cosmjs/proto-signing";
 import {MsgSubmitProposal, MsgDeposit, MsgVote} from "./cosmos/gov/v1beta1/tx";
-import {TextProposal} from "./cosmos/gov/v1beta1/gov"; // Replace with your own Msg import
+import { Int } from "@keplr-wallet/unit";
 
 const maxHeightModifier = {
     setMaxHeight: {
@@ -83,7 +83,7 @@ const TypeMeta = {
         gasAdjustment: '1.8'
     },
     [Types.SUBMITPROPOSAL]: {
-        button: 'new',
+        button: 'new proposal',
         path: 'gov/proposals',
         gasAdjustment: '1.4'
     },
@@ -433,7 +433,6 @@ class LedgerButton extends Component {
         let gasAdjustment = TypeMeta[this.state.actionType].gasAdjustment || DEFAULT_GAS_ADJUSTMENT;
         Meteor.call('transaction.simulate', txMsg, this.state.user, this.state.currentUser.accountNumber, this.state.currentUser.sequence, this.getPath(), gasAdjustment, (err, res) =>{
             if (res){
-                console.log(res);
                 Ledger.applyGas(txMsg, res, Meteor.settings.public.ledger.gasPrice, Coin.StakingCoin.denom);
                 this.setStateOnSuccess('simulating', {
                     gasEstimate: res,
@@ -442,7 +441,6 @@ class LedgerButton extends Component {
                 })
             }
             else {
-                console.log(err);
                 this.setStateOnError('simulating', 'something went wrong')
             }
         })
@@ -587,7 +585,6 @@ class LedgerButton extends Component {
             {"sort":{"description.moniker":1}}
         );
 
-        console.log(activeValidators);
         let redelegations = this.state.redelegations || {};
         let maxEntries = (this.props.stakingParams&&this.props.stakingParams.max_entries)?this.props.stakingParams.max_entries:7;
         return <UncontrolledDropdown direction='down' size='sm' className='redelegate-validators'>

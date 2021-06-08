@@ -16,7 +16,7 @@ import CryptoJS from "crypto-js"
 import { MsgDelegate, MsgUndelegate, MsgBeginRedelegate } from "@cosmjs/stargate/build/codec/cosmos/staking/v1beta1/tx"; 
 import { MsgSend } from "@cosmjs/stargate/build/codec/cosmos/bank/v1beta1/tx"; 
 import { MsgWithdrawDelegatorReward } from "@cosmjs/stargate/build/codec/cosmos/distribution/v1beta1/tx";
-import { VoteOption } from "./cosmos/gov/v1beta1/gov";
+import { VoteOption, TextProposal } from "./cosmos/gov/v1beta1/gov";
 
 // TODO: discuss TIMEOUT value
 const INTERACTION_TIMEOUT = 10000
@@ -423,6 +423,7 @@ export class Ledger {
         toAddress,
         amount
     ) {
+
         const msgAny = [{    
             typeUrl: TYPE_URLS.msgSend,
             value: MsgSend.fromPartial({
@@ -445,16 +446,15 @@ export class Ledger {
         description,
         deposit
     ) {
-
         const msgAny = [{
-            type: 'cosmos-sdk/MsgSubmitProposal',
+            typeUrl: "/cosmos.gov.v1beta1.MsgSubmitProposal",
             value: {
                 content: {
-                    type: "/cosmos.TextProposal",
-                    value: {
-                        description: description,
-                        title: title
-                    }
+                    "typeUrl": "/cosmos.gov.v1beta1.TextProposal",
+                    value: TextProposal.encode({
+                        title: title,
+                        description: description
+                    }).finish()
                 },
                 initial_deposit: [{
                     amount: deposit.toString(),
@@ -464,27 +464,8 @@ export class Ledger {
             }
         }];
 
+
         return {msgAny, fee: Meteor.settings.public.fees.redelegate};
-
-        const txMsg = {
-            type: 'cosmos-sdk/MsgSubmitProposal',
-            value: {
-                content: {
-                    type: "/cosmos.TextProposal",
-                    value: {
-                        description: description,
-                        title: title
-                    }
-                },
-                initial_deposit: [{
-                    amount: deposit.toString(),
-                    denom: txContext.denom
-                }],
-                proposer: txContext.bech32
-            }
-        };
-
-        return Ledger.createSkeleton(txContext, [txMsg]);
     }
 
     static createVote(
