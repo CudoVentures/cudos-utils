@@ -17,6 +17,7 @@ import { MsgDelegate, MsgUndelegate, MsgBeginRedelegate } from "@cosmjs/stargate
 import { MsgSend } from "@cosmjs/stargate/build/codec/cosmos/bank/v1beta1/tx"; 
 import { MsgWithdrawDelegatorReward } from "@cosmjs/stargate/build/codec/cosmos/distribution/v1beta1/tx";
 import { VoteOption, TextProposal } from "./cosmos/gov/v1beta1/gov";
+import { Plan, SoftwareUpgradeProposal, CancelSoftwareUpgradeProposal} from '../../../cosmos/codec/v1beta1/upgrade';
 
 // TODO: discuss TIMEOUT value
 const INTERACTION_TIMEOUT = 10000
@@ -412,7 +413,6 @@ export class Ledger {
                 })
         }));
 
-        console.log(msgAny);
         return {msgAny, fee: Meteor.settings.public.fees.redelegate};
     }
 
@@ -446,16 +446,37 @@ export class Ledger {
         description,
         deposit
     ) {
+      
+        const content = {
+            // "typeUrl": "/cosmos.upgrade.v1beta1.CancelSoftwareUpgradeProposal",
+            // value: CancelSoftwareUpgradeProposal.encode({
+            //     title: title,
+            //     description: description,
+            // }).finish()
+
+            // "typeUrl": "/cosmos.upgrade.v1beta1.SoftwareUpgradeProposal",
+            // value: SoftwareUpgradeProposal.encode({
+            //     title: title,
+            //     description: description,
+            //     plan: {
+            //         name: 'testname',
+            //         height: Long.fromNumber(112123123123123),
+            //         info: 'testinfo'
+            //     }
+            // }).finish()
+
+            "typeUrl": "/cosmos.gov.v1beta1.TextProposal",
+            value: TextProposal.encode({
+                title: title,
+                description: description
+            }).finish()
+        }
+
+
         const msgAny = [{
             typeUrl: "/cosmos.gov.v1beta1.MsgSubmitProposal",
             value: {
-                content: {
-                    "typeUrl": "/cosmos.gov.v1beta1.TextProposal",
-                    value: TextProposal.encode({
-                        title: title,
-                        description: description
-                    }).finish()
-                },
+                content: content,
                 initial_deposit: [{
                     amount: deposit.toString(),
                     denom: txContext.denom
