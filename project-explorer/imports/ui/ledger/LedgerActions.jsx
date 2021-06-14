@@ -13,8 +13,10 @@ import TimeStamp from '../components/TimeStamp.jsx';
 import { PropTypes } from 'prop-types';
 import { assertIsBroadcastTxSuccess, SigningStargateClient, defaultRegistryTypes } from "@cosmjs/stargate";
 import {Registry} from "@cosmjs/proto-signing";
-import {MsgSubmitProposal, MsgDeposit, MsgVote} from "./cosmos/gov/v1beta1/tx";
+import {MsgSubmitProposal, MsgDeposit, MsgVote} from "../../../cosmos/codec/gov/v1beta1/tx";
 import { Int } from "@keplr-wallet/unit";
+import { CommunityPoolSpendProposal, CommunityPoolSpendProposalWithDeposit } from '@cosmjs/stargate/build/codec/cosmos/distribution/v1beta1/distribution'
+import { ClientUpdateProposal } from '@cosmjs/stargate/build/codec/ibc/core/client/v1/client';
 
 const maxHeightModifier = {
     setMaxHeight: {
@@ -457,7 +459,6 @@ class LedgerButton extends Component {
             ["/cosmos.gov.v1beta1.MsgVote", MsgVote],
              // Replace with your own type URL and Msg class
         ]);
-    
 
         this.initStateOnLoad('signing')
 

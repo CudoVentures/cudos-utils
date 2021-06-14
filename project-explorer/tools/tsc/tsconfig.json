@@ -7,10 +7,10 @@
         "removeComments": true,
         "preserveConstEnums": true,
         "sourceMap": false,
-        "outDir": "../../cosmos/codec/"
+        "outDir": "../../cosmos/codec/distribution/"
     },
     "include": [
-        "../../cosmos/codec/cosmos/",
+        "../../cosmos/codec/typescript/cosmos/distribution",
     ],
     "exclude": [
         "./mode_modules/**/*",
