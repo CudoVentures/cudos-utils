@@ -16,8 +16,11 @@ import CryptoJS from "crypto-js"
 import { MsgDelegate, MsgUndelegate, MsgBeginRedelegate } from "@cosmjs/stargate/build/codec/cosmos/staking/v1beta1/tx"; 
 import { MsgSend } from "@cosmjs/stargate/build/codec/cosmos/bank/v1beta1/tx"; 
 import { MsgWithdrawDelegatorReward } from "@cosmjs/stargate/build/codec/cosmos/distribution/v1beta1/tx";
-import { VoteOption, TextProposal } from "./cosmos/gov/v1beta1/gov";
-import { Plan, SoftwareUpgradeProposal, CancelSoftwareUpgradeProposal} from '../../../cosmos/codec/v1beta1/upgrade';
+import { VoteOption, TextProposal } from "../../../cosmos/codec/gov/v1beta1/gov";
+import { Plan, SoftwareUpgradeProposal, CancelSoftwareUpgradeProposal} from '../../../cosmos/codec/upgrade/upgrade';
+import { ParameterChangeProposal } from '../../../cosmos/codec/params/v1beta1/params';
+import { CommunityPoolSpendProposal, CommunityPoolSpendProposalWithDeposit } from '@cosmjs/stargate/build/codec/cosmos/distribution/v1beta1/distribution'
+import { ClientUpdateProposal } from '@cosmjs/stargate/build/codec/ibc/core/client/v1/client';
 
 // TODO: discuss TIMEOUT value
 const INTERACTION_TIMEOUT = 10000
@@ -29,6 +32,14 @@ const TYPE_URLS = {
     msgRedelegate: "/cosmos.staking.v1beta1.MsgBeginRedelegate",
     msgSend: "/cosmos.bank.v1beta1.MsgSend",
     msgWithdraw: "/cosmos.distribution.v1beta1.MsgWithdrawDelegationReward",
+    msgSubmitProposal: "/cosmos.gov.v1beta1.MsgSubmitProposal",
+    proposalTypeCancelSoftwareUpgradeProposal: "/cosmos.upgrade.v1beta1.CancelSoftwareUpgradeProposal",
+    proposalTypeSoftwareUpgradeProposal: "/cosmos.upgrade.v1beta1.SoftwareUpgradeProposal",
+    proposalTypeTextProposal: "/cosmos.gov.v1beta1.TextProposal",
+    proposalTypeParameterChangeProposal: "/cosmos.params.v1beta1.ParameterChangeProposal",
+    proposalTypeCommunitySpendProposal: "/cosmos.distribution.v1beta1.CommunityPoolSpendProposal",
+    proposalTypeCommunitySpendProposalWithDeposit: "/cosmos.distribution.v1beta1.CommunityPoolSpendProposalWithDeposit",
+    proposalTypeClientUpdateProposal: "/ibc.core.client.v1.ClientUpdateProposal",
 }
 
 export const DEFAULT_GAS_PRICE = parseFloat(Meteor.settings.public.ledger.gasPrice) || 0.025;
@@ -370,7 +381,7 @@ export class Ledger {
                     amount: uatomAmount.toString(),
                     denom: txContext.denom,
                 },
-              }),
+            }),
             memo: txContext.memo,
         }];
 
@@ -395,7 +406,7 @@ export class Ledger {
                     amount: uatomAmount.toString(),
                     denom: txContext.denom,
                 },
-              }),
+            }),
             memo: txContext.memo,
         }];
 
@@ -410,7 +421,7 @@ export class Ledger {
             value: MsgWithdrawDelegatorReward.fromPartial({
                 delegatorAddress: txContext.bech32,
                 validatorAddress: validator.address
-                })
+            })
         }));
 
         return {msgAny, fee: Meteor.settings.public.fees.redelegate};
@@ -448,13 +459,13 @@ export class Ledger {
     ) {
       
         const content = {
-            // "typeUrl": "/cosmos.upgrade.v1beta1.CancelSoftwareUpgradeProposal",
+            // typeUrl: TYPE_URLS.proposalTypeCancelSoftwareUpgradeProposal,
             // value: CancelSoftwareUpgradeProposal.encode({
             //     title: title,
             //     description: description,
             // }).finish()
 
-            // "typeUrl": "/cosmos.upgrade.v1beta1.SoftwareUpgradeProposal",
+            // typeUrl: TYPE_URLS.proposalTypeSoftwareUpgradeProposal,
             // value: SoftwareUpgradeProposal.encode({
             //     title: title,
             //     description: description,
@@ -465,16 +476,55 @@ export class Ledger {
             //     }
             // }).finish()
 
-            "typeUrl": "/cosmos.gov.v1beta1.TextProposal",
-            value: TextProposal.encode({
+            // typeUrl: TYPE_URLS.proposalTypeTextProposal,
+            // value: TextProposal.encode({
+            //     title: title,
+            //     description: description
+            // }).finish()
+
+            //ParameterChangeProposal
+            // typeUrl: TYPE_URLS.proposalTypeParameterChangeProposal,
+            // value: ParameterChangeProposal.encode({
+            //     title: title,
+            //     description: description,
+            //     changes: [{
+            //         subspace: 'bank',
+            //         key: 'DefaultSendEnabled',
+            //         value: 'false'
+            //     }]
+            // }).finish()
+
+            // CommunitiPoolSpendProposal
+            typeUrl: TYPE_URLS.proposalTypeCommunitySpendProposal,
+            value: CommunityPoolSpendProposal.encode({
                 title: title,
-                description: description
+                description: description,
+                recipient: "cudos14r345fsqkcudt83wz782lk6geen86r4zwwdpdk",
+                amount: [{amount: '1000000000000000000', denom: 'acudos'}]
             }).finish()
+
+            // CommunityPoolSpendProposalWithDeposit
+            // typeUrl: TYPE_URLS.communityPoolSpendProposalWithDeposit,
+            // value: CommunityPoolSpendProposalWithDeposit.encode({
+            //     title: title,
+            //     description: description,
+            //     recipient: "cudos14r345fsqkcudt83wz782lk6geen86r4zwwdpdk",
+            //     amount: '1000000000000000000acudos',
+            //     deposit: '1000000000000000000acudos'
+            // }).finish()
+
+            //ClientUpdateProposal
+            // typeUrl: TYPE_URLS.proposalTypeClientUpdateProposal,
+            // value: ClientUpdateProposal.encode({
+            //     title: title,
+            //     description: description,
+            //     clientId: "13123123123",
+            // }).finish()
         }
 
 
         const msgAny = [{
-            typeUrl: "/cosmos.gov.v1beta1.MsgSubmitProposal",
+            typeUrl: TYPE_URLS.msgSubmitProposal,
             value: {
                 content: content,
                 initial_deposit: [{

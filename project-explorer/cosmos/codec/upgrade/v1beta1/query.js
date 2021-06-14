@@ -5,7 +5,7 @@ var __importDefault = (this && this.__importDefault) || function (mod) {
 Object.defineProperty(exports, "__esModule", { value: true });
 const long_1 = __importDefault(require("long"));
 const minimal_1 = __importDefault(require("protobufjs/minimal"));
-const upgrade_1 = require("../../../cosmos/upgrade/v1beta1/upgrade");
+const upgrade_1 = require("./upgrade");
 exports.protobufPackage = "cosmos.upgrade.v1beta1";
 const baseQueryCurrentPlanRequest = {};
 exports.QueryCurrentPlanRequest = {
