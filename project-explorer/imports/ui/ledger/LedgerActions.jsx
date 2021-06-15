@@ -14,9 +14,6 @@ import { PropTypes } from 'prop-types';
 import { assertIsBroadcastTxSuccess, SigningStargateClient, defaultRegistryTypes } from "@cosmjs/stargate";
 import {Registry} from "@cosmjs/proto-signing";
 import {MsgSubmitProposal, MsgDeposit, MsgVote} from "../../../cosmos/codec/gov/v1beta1/tx";
-import { Int } from "@keplr-wallet/unit";
-import { CommunityPoolSpendProposal, CommunityPoolSpendProposalWithDeposit } from '@cosmjs/stargate/build/codec/cosmos/distribution/v1beta1/distribution'
-import { ClientUpdateProposal } from '@cosmjs/stargate/build/codec/ibc/core/client/v1/client';
 
 const maxHeightModifier = {
     setMaxHeight: {
@@ -130,7 +127,6 @@ const Amount = (props) => {
     return <span><span className={props.className || 'amount'}>{numbro(amount).format("0,0.0000")}</span> <span className='denom'>{denom}</span></span>
 }
 
-
 const Fee = (props) => {
     return <span><CoinAmount mint className='gas' amount={Math.ceil(props.gas * Meteor.settings.public.ledger.gasPrice)}/> as fee </span>
 }
@@ -166,7 +162,8 @@ class LedgerButton extends Component {
             errorMessage: '',
             user: localStorage.getItem(CURRENTUSERADDR),
             pubKey: localStorage.getItem(CURRENTUSERPUBKEY),
-            memo: DEFAULT_MEMO
+            memo: DEFAULT_MEMO,
+            proposalType: Ledger.PROPOSAL_TYPES.PROPOSAL_TYPE_TEXT
         };
         this.ledger = new Ledger({testModeAllowed: false});
     }
@@ -189,8 +186,17 @@ class LedgerButton extends Component {
             gasEstimate: undefined,
             txMsg: undefined,
             params: undefined,
+            proposalType: Ledger.PROPOSAL_TYPES.PROPOSAL_TYPE_TEXT,
             proposalTitle: undefined,
             proposalDescription: undefined,
+            planName: undefined,
+            planHeight: undefined,
+            planInfo: undefined,
+            changeSubspace: undefined,
+            changeKey: undefined,
+            changeValue: undefined,
+            poolRecipient: undefined,
+            poolAmount: undefined,
             depositAmount: undefined,
             voteOption: undefined,
             memo: DEFAULT_MEMO
@@ -233,7 +239,6 @@ class LedgerButton extends Component {
     }
 
     componentDidUpdate(prevProps, prevState) {
-
         this.autoOpenModal();
         if ((this.state.isOpen && !prevState.isOpen) || (this.state.user && this.state.user != prevState.user)) {
             if (!this.state.success)
@@ -385,10 +390,37 @@ class LedgerButton extends Component {
                 this.state.transferAmount.amount);
             break;
         case Types.SUBMITPROPOSAL:
+            let proposalData = {
+                proposalTitle: this.state.proposalTitle, 
+                proposalDescription: this.state.proposalDescription, 
+                proposalType: this.state.proposalType,
+            };
+
+            switch(this.state.proposalType){
+            default:
+            case Ledger.PROPOSAL_TYPES.PROPOSAL_TYPE_TEXT:
+            case Ledger.PROPOSAL_TYPES.PROPOSAL_TYPE_CANCEL_SOFTWARE_UPDATE:
+                break;
+            case Ledger.PROPOSAL_TYPES.PROPOSAL_TYPE_SOFTWARE_UPDATE:
+                proposalData.planName = this.state.planName;
+                proposalData.planHeight = this.state.planHeight;
+                proposalData.planInfo = this.state.planInfo;
+                break;
+            case Ledger.PROPOSAL_TYPES.PROPOSAL_TYPE_PARAM_CHANGE:
+                proposalData.changeSubspace = this.state.changeSubspace;
+                proposalData.changeKey = this.state.changeKey;
+                proposalData.changeValue = this.state.changeValue;
+                break;
+            case Ledger.PROPOSAL_TYPES.PROPOSAL_TYPE_COMMUNITY_POOL_SPEND:
+                proposalData.poolRecipient = this.state.poolRecipient;
+                proposalData.poolAmount = this.state.poolAmount;
+                proposalData.poolDenom = Meteor.settings.public.bondDenom;
+                break;
+            }
+
             txMsg = Ledger.createSubmitProposal(
                 this.getTxContext(),
-                this.state.proposalTitle,
-                this.state.proposalDescription,
+                proposalData,
                 this.state.depositAmount.amount);
             break;
         case Types.VOTE:
@@ -403,8 +435,6 @@ class LedgerButton extends Component {
                 this.props.proposalId,
                 this.state.depositAmount.amount);
             break;
-
-
         }
         //callback(txMsg, this.getSimulateBody(txMsg))        
         callback(txMsg)
@@ -457,7 +487,7 @@ class LedgerButton extends Component {
             ["/cosmos.gov.v1beta1.MsgSubmitProposal", MsgSubmitProposal],
             ["/cosmos.gov.v1beta1.MsgDeposit", MsgDeposit],
             ["/cosmos.gov.v1beta1.MsgVote", MsgVote],
-             // Replace with your own type URL and Msg class
+            // Replace with your own type URL and Msg class
         ]);
 
         this.initStateOnLoad('signing')
@@ -491,32 +521,6 @@ class LedgerButton extends Component {
             this.setStateOnError('signing', e.message)
             console.log(e);
         }
-
-        // try {
-        // let txMsg = this.state.txMsg;
-        // console.log(txMsg);
-        // const txContext = this.getTxContext();
-        // const bytesToSign = Ledger.getBytesToSign(txMsg, txContext);
-        // this.ledger.sign(bytesToSign).then((sig) => {
-        //     try {
-        //         Ledger.applySignature(txMsg, txContext, sig);
-        //         Meteor.call('transaction.submit', txMsg, (err, res) => {
-        //             if (err) {
-        //                 this.setStateOnError('signing', err.reason)
-        //             } else if (res) {
-        //                 this.setStateOnSuccess('signing', {
-        //                     txHash: res,
-        //                     activeTab: '4'
-        //                 })
-        //             }
-        //         })
-        //     } catch (e) {
-        //         this.setStateOnError('signing', e.message)
-        //     }
-        // }, (err) => this.setStateOnError('signing', err.message))
-        // } catch (e) {
-        //     this.setStateOnError('signing', e.message)
-        // }
     }
 
     handleInputChange = (e) => {
@@ -530,10 +534,13 @@ class LedgerButton extends Component {
         case 'coin':
             value = new Coin(target.value, target.nextSibling.innerText)
             break;
+        case 'type':
+            value = parseInt(target.value);
+            break;
         default:
             value = target.value;
         }
-        this.setState({[target.name]: value})
+        this.setState({[target.name]: value});
     }
 
     redirectToSignin = () => {
@@ -928,32 +935,113 @@ class TransferButton extends LedgerButton {
 }
 
 class SubmitProposalButton extends LedgerButton {
+   
     renderActionTab = () => {
         if (!this.state.currentUser) return null;
         let maxAmount = this.state.currentUser.availableCoin;
-        return <TabPane tabId="2">
-            <h3>Submit A New Proposal</h3>
-            <InputGroup>
-                <Input name="proposalTitle" onChange={this.handleInputChange}
-                    placeholder="Title" type="text"
-                    value={this.state.proposalTitle}/>
-            </InputGroup>
-            <InputGroup>
-                <Input name="proposalDescription" onChange={this.handleInputChange}
-                    placeholder="Description" type="textarea"
-                    value={this.state.proposalDescription}/>
-            </InputGroup>
-            <InputGroup>
-                <Input name="depositAmount" onChange={this.handleInputChange}
-                    data-type='coin' placeholder="Amount"
-                    min={Coin.MinStake} max={maxAmount.stakingAmount} type="number"
-                    invalid={this.state.depositAmount != null && !isBetween(this.state.depositAmount, 1, maxAmount)}/>
-                <InputGroupAddon addonType="append">{Coin.StakingCoin.displayName}</InputGroupAddon>
-            </InputGroup>
-            <Input name="memo" onChange={this.handleInputChange}
-                placeholder="Memo(optional)" type="textarea" value={this.state.memo}/>
-            <div>your available balance: <Amount coin={maxAmount}/></div> 
-        </TabPane>
+
+        return (
+            <TabPane tabId="2">
+                <h3>Submit A New Proposal</h3>
+                <InputGroup>
+                    <Input name="proposalType" onChange={this.handleInputChange}
+                        placeholder="Type" type="select" data-type="type"
+                        value={this.state.proposalType}>
+                        {Object.values(Ledger.PROPOSAL_TYPES).map(type => <option key={type} value={type}>{this.getProposalTypeText(type)} proposal</option>)}
+                    </Input>
+                </InputGroup>
+                <InputGroup>
+                    <Input name="proposalTitle" onChange={this.handleInputChange}
+                        placeholder="Title" type="text"
+                        value={this.state.proposalTitle}/>
+                </InputGroup>
+                <InputGroup>
+                    <Input name="proposalDescription" onChange={this.handleInputChange}
+                        placeholder="Description" type="textarea"
+                        value={this.state.proposalDescription}/>
+                </InputGroup>
+                { this.state.proposalType === Ledger.PROPOSAL_TYPES.PROPOSAL_TYPE_PARAM_CHANGE ?
+                    (<>
+                        <InputGroup>
+                            <Input name="changeSubspace" onChange={this.handleInputChange}
+                                placeholder="Change subspace" type="text"
+                                value={this.state.changeSubspace}/>
+                        </InputGroup>
+                        <InputGroup>
+                            <Input name="changeKey" onChange={this.handleInputChange}
+                                placeholder="Change Key" type="text"
+                                value={this.state.changeKey}/>
+                        </InputGroup>
+                        <InputGroup>
+                            <Input name="changeValue" onChange={this.handleInputChange}
+                                placeholder="Change Value" type="text"
+                                value={this.state.changeValue}/>
+                        </InputGroup>
+                    </>
+                    ) : ''
+                }
+                { this.state.proposalType === Ledger.PROPOSAL_TYPES.PROPOSAL_TYPE_SOFTWARE_UPDATE ?
+                    (<>
+                        <InputGroup>
+                            <Input name="planName" onChange={this.handleInputChange}
+                                placeholder="Plan name" type="text"
+                                value={this.state.planName}/>
+                        </InputGroup>
+                        <InputGroup>
+                            <Input name="planHeight" onChange={this.handleInputChange}
+                                placeholder="Plan height" type="text"
+                                value={this.state.planHeight}/>
+                        </InputGroup>
+                        <InputGroup>
+                            <Input name="planInfo" onChange={this.handleInputChange}
+                                placeholder="Plan info" type="text"
+                                value={this.state.planInfo}/>
+                        </InputGroup>
+                    </>
+                    ) : ''
+                }
+                { this.state.proposalType === Ledger.PROPOSAL_TYPES.PROPOSAL_TYPE_COMMUNITY_POOL_SPEND ?
+                    (<>
+                        <InputGroup>
+                            <Input name="poolRecipient" onChange={this.handleInputChange}
+                                placeholder="Spend recipient" type="text"
+                                value={this.state.poolRecipient}/>
+                        </InputGroup>
+                        <InputGroup>
+                            <Input name="poolAmount" onChange={this.handleInputChange}
+                                placeholder="Spend amount" type="text"/>
+                            <InputGroupAddon addonType="append">{Coin.StakingCoin.displayName}</InputGroupAddon>
+                        </InputGroup>
+                    </>
+                    ) : ''
+                }
+                <InputGroup>
+                    <Input name="depositAmount" onChange={this.handleInputChange}
+                        data-type='coin' placeholder="Amount"
+                        min={Coin.MinStake} max={maxAmount.stakingAmount} type="number"
+                        invalid={this.state.depositAmount != null && !isBetween(this.state.depositAmount, 1, maxAmount)}/>
+                    <InputGroupAddon addonType="append">{Coin.StakingCoin.displayName}</InputGroupAddon>
+                </InputGroup>
+                <Input name="memo" onChange={this.handleInputChange}
+                    placeholder="Memo(optional)" type="textarea" value={this.state.memo}/>
+                <div>your available balance: <Amount coin={maxAmount}/></div> 
+            </TabPane>
+        )
+    }
+
+    getProposalTypeText = (proposalType) => {
+        switch(proposalType){
+        case Ledger.PROPOSAL_TYPES.PROPOSAL_TYPE_TEXT:
+            return 'Text';
+        case Ledger.PROPOSAL_TYPES.PROPOSAL_TYPE_SOFTWARE_UPDATE:
+            return 'Software update';
+        case Ledger.PROPOSAL_TYPES.PROPOSAL_TYPE_PARAM_CHANGE:
+            return 'Parameter change';
+        case Ledger.PROPOSAL_TYPES.PROPOSAL_TYPE_COMMUNITY_POOL_SPEND:
+            return 'Community pool spend';
+        case Ledger.PROPOSAL_TYPES.PROPOSAL_TYPE_CANCEL_SOFTWARE_UPDATE:
+            return 'Cancel software update';
+        }
     }
 
     getSimulateBody (txMsg) {
@@ -973,7 +1061,6 @@ class SubmitProposalButton extends LedgerButton {
     supportAction(action) {
         return action === Types.SUBMITPROPOSAL;
     }
-
 
     isDataValid = () => {
         if (!this.state.currentUser) return false

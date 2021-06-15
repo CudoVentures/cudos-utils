@@ -37,8 +37,7 @@ const TYPE_URLS = {
     proposalTypeSoftwareUpgradeProposal: "/cosmos.upgrade.v1beta1.SoftwareUpgradeProposal",
     proposalTypeTextProposal: "/cosmos.gov.v1beta1.TextProposal",
     proposalTypeParameterChangeProposal: "/cosmos.params.v1beta1.ParameterChangeProposal",
-    proposalTypeCommunitySpendProposal: "/cosmos.distribution.v1beta1.CommunityPoolSpendProposal",
-    proposalTypeCommunitySpendProposalWithDeposit: "/cosmos.distribution.v1beta1.CommunityPoolSpendProposalWithDeposit",
+    proposalTypeCommunityPoolSpendProposal: "/cosmos.distribution.v1beta1.CommunityPoolSpendProposal",
     proposalTypeClientUpdateProposal: "/ibc.core.client.v1.ClientUpdateProposal",
 }
 
@@ -67,17 +66,26 @@ export const toPubKey = (address) => {
 
 function createCosmosAddress(publicKey) {
     try{
-    const message = CryptoJS.enc.Hex.parse(publicKey.toString(`hex`))
-    const hash = ripemd160(sha256(message)).toString()
-    const address = Buffer.from(hash, `hex`)
-    const cosmosAddress = bech32ify(address, Meteor.settings.public.bech32PrefixAccAddr)
-    return cosmosAddress
+        const message = CryptoJS.enc.Hex.parse(publicKey.toString(`hex`))
+        const hash = ripemd160(sha256(message)).toString()
+        const address = Buffer.from(hash, `hex`)
+        const cosmosAddress = bech32ify(address, Meteor.settings.public.bech32PrefixAccAddr)
+        return cosmosAddress
     } catch(e){
         console.log(e);
     }
 }
 
 export class Ledger {
+
+    static PROPOSAL_TYPES = {
+        PROPOSAL_TYPE_TEXT: 1,
+        PROPOSAL_TYPE_SOFTWARE_UPDATE: 2,
+        PROPOSAL_TYPE_CANCEL_SOFTWARE_UPDATE: 3,
+        PROPOSAL_TYPE_PARAM_CHANGE: 4,
+        PROPOSAL_TYPE_COMMUNITY_POOL_SPEND: 5,
+    }
+
     constructor({ testModeAllowed }) {
         this.testModeAllowed = testModeAllowed
         
@@ -444,84 +452,21 @@ export class Ledger {
                     amount: amount.toString(),
                     denom: txContext.denom,
                 }],
-              }),
+            }),
             memo: txContext.memo,
         }];
 
         return {msgAny, fee: Meteor.settings.public.fees.redelegate};
     }
 
+
     static createSubmitProposal(
         txContext,
-        title,
-        description,
+        proposalData,
         deposit
     ) {
-      
-        const content = {
-            // typeUrl: TYPE_URLS.proposalTypeCancelSoftwareUpgradeProposal,
-            // value: CancelSoftwareUpgradeProposal.encode({
-            //     title: title,
-            //     description: description,
-            // }).finish()
-
-            // typeUrl: TYPE_URLS.proposalTypeSoftwareUpgradeProposal,
-            // value: SoftwareUpgradeProposal.encode({
-            //     title: title,
-            //     description: description,
-            //     plan: {
-            //         name: 'testname',
-            //         height: Long.fromNumber(112123123123123),
-            //         info: 'testinfo'
-            //     }
-            // }).finish()
-
-            // typeUrl: TYPE_URLS.proposalTypeTextProposal,
-            // value: TextProposal.encode({
-            //     title: title,
-            //     description: description
-            // }).finish()
-
-            //ParameterChangeProposal
-            // typeUrl: TYPE_URLS.proposalTypeParameterChangeProposal,
-            // value: ParameterChangeProposal.encode({
-            //     title: title,
-            //     description: description,
-            //     changes: [{
-            //         subspace: 'bank',
-            //         key: 'DefaultSendEnabled',
-            //         value: 'false'
-            //     }]
-            // }).finish()
-
-            // CommunitiPoolSpendProposal
-            typeUrl: TYPE_URLS.proposalTypeCommunitySpendProposal,
-            value: CommunityPoolSpendProposal.encode({
-                title: title,
-                description: description,
-                recipient: "cudos14r345fsqkcudt83wz782lk6geen86r4zwwdpdk",
-                amount: [{amount: '1000000000000000000', denom: 'acudos'}]
-            }).finish()
-
-            // CommunityPoolSpendProposalWithDeposit
-            // typeUrl: TYPE_URLS.communityPoolSpendProposalWithDeposit,
-            // value: CommunityPoolSpendProposalWithDeposit.encode({
-            //     title: title,
-            //     description: description,
-            //     recipient: "cudos14r345fsqkcudt83wz782lk6geen86r4zwwdpdk",
-            //     amount: '1000000000000000000acudos',
-            //     deposit: '1000000000000000000acudos'
-            // }).finish()
-
-            //ClientUpdateProposal
-            // typeUrl: TYPE_URLS.proposalTypeClientUpdateProposal,
-            // value: ClientUpdateProposal.encode({
-            //     title: title,
-            //     description: description,
-            //     clientId: "13123123123",
-            // }).finish()
-        }
-
+        
+        const content = getProposalContent(proposalData);
 
         const msgAny = [{
             typeUrl: TYPE_URLS.msgSubmitProposal,
@@ -580,6 +525,65 @@ export class Ledger {
         return {msgAny, fee: Meteor.settings.public.fees.redelegate};
     }
 
+}
+
+
+function getProposalContent(proposalData){
+    switch(proposalData.proposalType){
+    case Ledger.PROPOSAL_TYPES.PROPOSAL_TYPE_TEXT:
+        return {
+            typeUrl: TYPE_URLS.proposalTypeTextProposal,
+            value: TextProposal.encode({
+                title: proposalData.proposalTitle,
+                description: proposalData.proposalDescription
+            }).finish()
+        }
+    case Ledger.PROPOSAL_TYPES.PROPOSAL_TYPE_SOFTWARE_UPDATE:
+        return {
+            typeUrl: TYPE_URLS.proposalTypeSoftwareUpgradeProposal,
+            value: SoftwareUpgradeProposal.encode({
+                title: proposalData.proposalTitle,
+                description: proposalData.proposalDescription,
+                plan: {
+                    name: proposalData.planName,
+                    height: Long.fromString(proposalData.planHeight),
+                    info: proposalData.planInfo
+                }
+            }).finish()
+        }
+    case Ledger.PROPOSAL_TYPES.PROPOSAL_TYPE_CANCEL_SOFTWARE_UPDATE:
+        return {
+            typeUrl: TYPE_URLS.proposalTypeCancelSoftwareUpgradeProposal,
+            value: CancelSoftwareUpgradeProposal.encode({
+                title: proposalData.proposalTitle,
+                description: proposalData.proposalDescription,
+            }).finish()
+
+        }
+    case Ledger.PROPOSAL_TYPES.PROPOSAL_TYPE_PARAM_CHANGE:
+        return {
+            typeUrl: TYPE_URLS.proposalTypeParameterChangeProposal,
+            value: ParameterChangeProposal.encode({
+                title: proposalData.proposalTitle,
+                description: proposalData.proposalDescription,
+                changes: [{
+                    subspace: proposalData.changeSubspace,
+                    key: proposalData.changeKey,
+                    value: `"${proposalData.changeValue}"`
+                }]
+            }).finish()
+        }
+    case Ledger.PROPOSAL_TYPES.PROPOSAL_TYPE_COMMUNITY_POOL_SPEND:
+        return {
+            typeUrl: TYPE_URLS.proposalTypeCommunityPoolSpendProposal,
+            value: CommunityPoolSpendProposal.encode({
+                title: proposalData.proposalTitle,
+                description: proposalData.proposalDescription,
+                recipient: proposalData.poolRecipient,
+                amount: [{amount: proposalData.poolAmount, denom: proposalData.poolDenom}]
+            }).finish()
+        }
+    }
 }
 
 function versionString({ major, minor, patch }) {
