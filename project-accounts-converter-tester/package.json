@@ -1,0 +1,8 @@
+{
+  "dependencies": {
+    "ethers": "^4.0.37",
+    "ethereumjs-util": "^7.0.10",
+    "ethereumjs-tx": "^2.1.2"
+  },
+  "devDependencies": {}
+}
