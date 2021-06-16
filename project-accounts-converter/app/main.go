@@ -2,11 +2,13 @@ package main
 
 import (
 	"context"
+	"crypto/ecdsa"
 	"encoding/hex"
 	"encoding/json"
 	"fmt"
 	"io/ioutil"
 	"log"
+	"math/big"
 	"net/http"
 	"os"
 	"strings"
@@ -28,20 +30,13 @@ func main() {
 	jsonTx := getJsonTx()
 	ethTx := getTx(jsonTx)
 	hashBytes, sig := getSigData(ethTx)
+	// publicKeyHex := getPublicKeyHex(hashBytes, sig)
+	publicKey := getPublicKey(hashBytes, sig)
 
-	publicKey, err := crypto.Ecrecover(hashBytes, sig)
-	if err != nil {
-		fmt.Println(err)
-	}
-	fmt.Println(publicKey, len(publicKey))
-	fmt.Println(hex.EncodeToString(publicKey))
+	recoveredAddr := crypto.PubkeyToAddress(*publicKey)
 
-	// account := common.HexToAddress("0xb3ccb8FB2533E51893915908CEb85763CeaeA97b")
-	// balance, err := client.BalanceAt(context.Background(), account, nil)
-	// if err != nil {
-	// 	log.Fatal(err)
-	// }
-	// fmt.Println(balance) // 25893180161173005034
+	// fmt.Printf("Public key %s\n", publicKey.)
+	fmt.Printf("Derived address %s\n", recoveredAddr)
 }
 
 func loadEnv() {
@@ -51,7 +46,7 @@ func loadEnv() {
 	}
 }
 
-func getJsonTx() (tx *appTypes.Transaction) {
+func getJsonTx() *appTypes.Transaction {
 	var etherscanRes appTypes.EtherscanResponse
 	var result *appTypes.Transaction = nil
 
@@ -72,6 +67,7 @@ func getJsonTx() (tx *appTypes.Transaction) {
 	for _, tx := range etherscanRes.Result {
 		if strings.EqualFold(tx.From, "0xbc16Ab24d16b66deB9B408ee4C8b6d6CbcC4449b") {
 			result = &tx
+			break
 		}
 	}
 
@@ -79,17 +75,19 @@ func getJsonTx() (tx *appTypes.Transaction) {
 		panic("Transaction not found")
 	}
 
+	fmt.Printf("Selected transaction hash %s\n", result.Hash)
+
 	return result
 }
 
-func getTx(jsonTx *appTypes.Transaction) (tx *ethTypes.Transaction) {
+func getTx(jsonTx *appTypes.Transaction) *ethTypes.Transaction {
 	client, err := ethclient.Dial("https://mainnet.infura.io/v3/" + os.Getenv("INFURA_PROJECT_ID"))
 	if err != nil {
 		panic(err)
 	}
 
 	hash := common.HexToHash(jsonTx.Hash)
-	tx, _, err = client.TransactionByHash(context.Background(), hash)
+	tx, _, err := client.TransactionByHash(context.Background(), hash)
 	if err != nil {
 		panic(err)
 	}
@@ -97,26 +95,68 @@ func getTx(jsonTx *appTypes.Transaction) (tx *ethTypes.Transaction) {
 	return tx
 }
 
-func getSigData(tx *ethTypes.Transaction) (hashBytes []byte, sig []byte) {
-	sig = make([]byte, 0)
+func getSigData(tx *ethTypes.Transaction) ([]byte, []byte) {
+	var i37 = new(big.Int).SetUint64(37)
+	// var i38 = new(big.Int).SetUint64(38)
+	var vByte byte
+	sig := make([]byte, 0)
 
-	_, r, s := tx.RawSignatureValues()
+	v, r, s := tx.RawSignatureValues()
+
+	if v.Cmp(i37) == 0 {
+		vByte = 0
+	} else {
+		vByte = 1
+	}
+
+	fmt.Println(v)
+
 	// vBytes := v.Bytes()
 	rBytes := r.Bytes()
 	sBytes := s.Bytes()
-	hashBytes, _ = hex.DecodeString(tx.Hash().Hex()[2:])
+	hashBytes, _ := hex.DecodeString(tx.Hash().Hex()[2:])
 
-	if !crypto.ValidateSignatureValues(1, r, s, true) {
-		fmt.Println("EC RECOVER FAIL: v, r or s value invalid")
-		panic("err")
-	}
+	fmt.Printf("R Bytes:\n")
+	fmt.Println(rBytes)
+	fmt.Printf("S Bytes:\n")
+	fmt.Println(sBytes)
+	fmt.Printf("V Byte:\n")
+	fmt.Println(vByte)
+
+	// if !crypto.ValidateSignatureValues(vByte, r, s, true) {
+	// 	panic("EC RECOVER FAIL: v, r or s value invalid")
+	// }
 
 	// in = append(in, hashBytes...)
 	sig = append(sig, rBytes...)
 	sig = append(sig, sBytes...)
-	sig = append(sig, 1)
+	sig = append(sig, vByte)
 
 	return hashBytes, sig
+}
+
+func getPublicKeyHex(hashBytes []byte, sig []byte) string {
+	publicKeyBytes, err := crypto.Ecrecover(hashBytes, sig)
+	if err != nil {
+		panic(err)
+	}
+
+	publicKeyBytes = publicKeyBytes[1:]
+	var publicKeyHex = "0x" + hex.EncodeToString(publicKeyBytes)
+	fmt.Printf("Public key length = %d and bytes:\n", len(publicKeyBytes))
+	fmt.Println(publicKeyBytes)
+	fmt.Printf("Public key hex: %s with length %d\n", publicKeyHex, len(publicKeyHex))
+
+	return publicKeyHex
+}
+
+func getPublicKey(hashBytes []byte, sig []byte) *ecdsa.PublicKey {
+	publicKey, err := crypto.SigToPub(hashBytes, sig)
+	if err != nil {
+		panic(err)
+	}
+
+	return publicKey
 }
 
 // func ecrecoverFunc(in []byte) []byte {
