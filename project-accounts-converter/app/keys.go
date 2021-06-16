@@ -9,8 +9,10 @@ import (
 	"log"
 	"net/http"
 	"os"
+	"strings"
 
-	myTypes "cudos.org/accounts-converter/app/types"
+	appTypes "cudos.org/accounts-converter/app/types"
+	ethTypes "github.com/ethereum/go-ethereum/core/types"
 
 	"github.com/cosmos/cosmos-sdk/crypto/keys/secp256k1"
 	sdk "github.com/cosmos/cosmos-sdk/types"
@@ -18,60 +20,16 @@ import (
 	"github.com/ethereum/go-ethereum/common"
 	"github.com/ethereum/go-ethereum/crypto"
 	"github.com/ethereum/go-ethereum/ethclient"
+	"github.com/joho/godotenv"
 )
 
 func main() {
-	// resp, err := http.Get("https://api.etherscan.io/api?module=account&action=txlist&address=0xb3ccb8FB2533E51893915908CEb85763CeaeA97b&startblock=11633453&endblock=99999999&sort=asc&apikey=YourApiKeyToken")
-	resp, err := http.Get("https://api.etherscan.io/api?module=account&action=txlist&address=0xb3ccb8FB2533E51893915908CEb85763CeaeA97b&startblock=11633454&endblock=99999999&sort=asc&apikey=YourApiKeyToken")
-	if err != nil {
-		log.Fatalln(err)
-	}
+	loadEnv()
+	jsonTx := getJsonTx()
+	ethTx := getTx(jsonTx)
+	hashBytes, sig := getSigData(ethTx)
 
-	body, err := ioutil.ReadAll(resp.Body)
-	if err != nil {
-		panic(err)
-	}
-
-	var res myTypes.EtherscanResponse
-	json.Unmarshal(body, &res)
-
-	client, err := ethclient.Dial("https://mainnet.infura.io/v3/")
-	if err != nil {
-		panic(err)
-	}
-
-	hash := common.HexToHash(res.Result[0].Hash)
-	transaction, _, err := client.TransactionByHash(context.Background(), hash)
-	if err != nil {
-		panic(err)
-	}
-
-	v, r, s := transaction.RawSignatureValues()
-	// vBytes := common.LeftPadBytes(v.Bytes(), 32)
-	vBytes := v.Bytes()
-	rBytes := r.Bytes()
-	sBytes := s.Bytes()
-	hashBytes, _ := hex.DecodeString(hash.Hex()[2:])
-
-	var in = make([]byte, 0)
-
-	// in = append(in, hashBytes...)
-	in = append(in, rBytes...)
-	in = append(in, sBytes...)
-	in = append(in, 1)
-
-	fmt.Println(vBytes, len(vBytes))
-	fmt.Println(rBytes, len(rBytes))
-	fmt.Println(sBytes, len(sBytes))
-	fmt.Println(hashBytes, len(hashBytes))
-	fmt.Println(in, len(in))
-
-	if !crypto.ValidateSignatureValues(1, r, s, true) {
-		fmt.Println("EC RECOVER FAIL: v, r or s value invalid")
-		panic("err")
-	}
-
-	publicKey, err := crypto.Ecrecover(hashBytes, in)
+	publicKey, err := crypto.Ecrecover(hashBytes, sig)
 	if err != nil {
 		fmt.Println(err)
 	}
@@ -84,6 +42,81 @@ func main() {
 	// 	log.Fatal(err)
 	// }
 	// fmt.Println(balance) // 25893180161173005034
+}
+
+func loadEnv() {
+	err := godotenv.Load("./config/.env")
+	if err != nil {
+		panic(err)
+	}
+}
+
+func getJsonTx() (tx *appTypes.Transaction) {
+	var etherscanRes appTypes.EtherscanResponse
+	var result *appTypes.Transaction = nil
+
+	// resp, err := http.Get("https://api.etherscan.io/api?module=account&action=txlist&address=0xb3ccb8FB2533E51893915908CEb85763CeaeA97b&startblock=11633453&endblock=99999999&sort=asc&apikey=YourApiKeyToken")
+	resp, err := http.Get("https://api.etherscan.io/api?module=account&action=txlist&address=0x817bbdbc3e8a1204f3691d14bb44992841e3db35&startblock=12000000&endblock=99999999&sort=asc&apikey=YourApiKeyToken")
+	if err != nil {
+		log.Fatalln(err)
+	}
+
+	body, err := ioutil.ReadAll(resp.Body)
+	if err != nil {
+		panic(err)
+	}
+
+	json.Unmarshal(body, &etherscanRes)
+
+	fmt.Printf("Total transactions %d\n", len(etherscanRes.Result))
+	for _, tx := range etherscanRes.Result {
+		if strings.EqualFold(tx.From, "0xbc16Ab24d16b66deB9B408ee4C8b6d6CbcC4449b") {
+			result = &tx
+		}
+	}
+
+	if result == nil {
+		panic("Transaction not found")
+	}
+
+	return result
+}
+
+func getTx(jsonTx *appTypes.Transaction) (tx *ethTypes.Transaction) {
+	client, err := ethclient.Dial("https://mainnet.infura.io/v3/" + os.Getenv("INFURA_PROJECT_ID"))
+	if err != nil {
+		panic(err)
+	}
+
+	hash := common.HexToHash(jsonTx.Hash)
+	tx, _, err = client.TransactionByHash(context.Background(), hash)
+	if err != nil {
+		panic(err)
+	}
+
+	return tx
+}
+
+func getSigData(tx *ethTypes.Transaction) (hashBytes []byte, sig []byte) {
+	sig = make([]byte, 0)
+
+	_, r, s := tx.RawSignatureValues()
+	// vBytes := v.Bytes()
+	rBytes := r.Bytes()
+	sBytes := s.Bytes()
+	hashBytes, _ = hex.DecodeString(tx.Hash().Hex()[2:])
+
+	if !crypto.ValidateSignatureValues(1, r, s, true) {
+		fmt.Println("EC RECOVER FAIL: v, r or s value invalid")
+		panic("err")
+	}
+
+	// in = append(in, hashBytes...)
+	sig = append(sig, rBytes...)
+	sig = append(sig, sBytes...)
+	sig = append(sig, 1)
+
+	return hashBytes, sig
 }
 
 // func ecrecoverFunc(in []byte) []byte {
