@@ -14,10 +14,10 @@ async function main() {
     const extractor = new Extractor();
 
     const jsonTxs = await etherscanApi.fetchAllTransactions();
-    const compressedPublicKeys = await extractor.extractCompressedPublicKeys(jsonTxs);
+    const dataTransferModels = await extractor.extractCompressedPublicKeys(jsonTxs);
 
-    console.log(`Found ${compressedPublicKeys.length}`);
-    IO.output(compressedPublicKeys.join(','));
+    console.log(`Found ${dataTransferModels.length}`);
+    IO.writeDataTransfer(JSON.stringify(dataTransferModels));
 }
 
 main();

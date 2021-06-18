@@ -14,11 +14,13 @@ class EtherscanApi {
         let jsonTxs = [];
 
         for (let startBlock = this.startBlock; startBlock != -1; ) {
+            console.log(`fetching transaction from ${startBlock}`);
             const url = this.url.replace('{0}', startBlock).replace('{1}', END_BLOCK);
             const axiosRes = await axios.get(url);
             const etherscanRes = axiosRes.data;
             let res = etherscanRes.result;
 
+            console.log(`fetched transactions count for starting block ${startBlock}`, res.length);
             if (res.length === 10000) {
                 let lastFetchedBlockNumber = parseInt(res[res.length - 1].blockNumber);
 
