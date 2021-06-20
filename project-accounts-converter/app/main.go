@@ -63,6 +63,11 @@ func loadWallets() map[string]appTypes.WalletModel {
 	json.Unmarshal(content, &walletModels)
 
 	for _, walletModel := range walletModels {
+		_, exists := walletsMap[walletModel.Address]
+		if exists {
+			panic(fmt.Sprintf("Duplicate address in inputs wallet.json -> %s", walletModel.Address))
+		}
+
 		walletsMap[walletModel.Address] = walletModel
 		// fmt.Printf("Wallets %s -> %s\n", walletModel.Address, walletModel.Balance)
 	}
