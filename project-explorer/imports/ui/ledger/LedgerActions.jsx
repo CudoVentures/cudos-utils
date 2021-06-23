@@ -1,3 +1,4 @@
+/* eslint-disable react/jsx-no-comment-textnodes */
 /* eslint-disable react/no-unused-prop-types */
 import qs from 'querystring';
 import React, { Component } from 'react';
@@ -102,7 +103,9 @@ const TypeMeta = {
 
 const CoinAmount = (props) => {
     let coin = {};
+
     if (!props.coin && !props.amount) return null;
+
     if(!props.denom){
         coin = new Coin(props.amount).toString(4);
     }
@@ -128,6 +131,7 @@ const Amount = (props) => {
 }
 
 const Fee = (props) => {
+    
     return <span><CoinAmount mint className='gas' amount={Math.ceil(props.gas * Meteor.settings.public.ledger.gasPrice)}/> as fee </span>
 }
 
@@ -295,7 +299,7 @@ class LedgerButton extends Component {
         Meteor.call('accounts.getAccountDetail', this.state.user, (error, result) => {
             try{
                 if (result) {
-                    let coin = result.coins?(new Coin(result.coins[0].amount, result.coins[0].denom)): (new Coin(0, result.coins[0].denom));
+                    let coin = result.coins && result.coins.length > 0 ? (new Coin(result.coins[0].amount, result.coins[0].denom)): (new Coin(0, Meteor.settings.public.coins[0].displayName));
                     this.setStateOnSuccess('loadingBalance', {
                         currentUser: {
                             accountNumber: result.account_number,
@@ -328,7 +332,7 @@ class LedgerButton extends Component {
                     this.setState({
                         success: false,
                         activeTab: '0',
-                        errorMessage: `Currently logged in as another user ${this.state.user}`
+                        errorMessage: ''//`Currently logged in as another user ${this.state.user}`
                     })
                 }
             }
@@ -544,11 +548,8 @@ class LedgerButton extends Component {
     }
 
     redirectToSignin = () => {
-        let params = {...this.state.params,
-            ...this.populateRedirectParams(),
-        };
-        this.close()
-        this.props.history.push(this.props.history.location.pathname + '?signin&' + qs.stringify(params))
+        Ledger.connectKeplr();
+        this.close();
     }
 
     populateRedirectParams = () => {
@@ -561,9 +562,9 @@ class LedgerButton extends Component {
 
     getActionButton = () => {
         if (this.state.activeTab === '0')
-            return <Button color="primary"  onClick={this.redirectToSignin}>Sign in With Ledger</Button>
+            return <Button color="primary"  onClick={this.redirectToSignin}>Sign in With Keplr</Button>
         if (this.state.activeTab === '1')
-            return <Button color="primary"  onClick={this.tryConnect}>Continue</Button>
+            return <Button color="primary"  onClick={this.redirectToSignin}>Sign in With Keplr</Button> //onClick={this.tryConnect}>Continue</Button>
         if (this.state.activeTab === '2')
             return <Button color="primary"  disabled={this.state.simulating || !this.isDataValid()} onClick={this.simulate}>
                 {(this.state.errorMessage !== '')?'Retry':'Next'}
@@ -657,9 +658,9 @@ class LedgerButton extends Component {
         return  <Modal isOpen={this.state.isOpen} toggle={this.close} className="ledger-modal">
             <ModalBody>
                 <TabContent className='ledger-modal-tab' activeTab={this.state.activeTab}>
-                    <TabPane tabId="0"></TabPane>
+                    <TabPane tabId="0">Please connect your Keplr wallet.</TabPane>
                     <TabPane tabId="1">
-                        Please connect your Ledger device and open Cosmos App.
+                        Please connect your Keplr wallet.
                     </TabPane>
                     {this.renderActionTab()}
                     {this.renderConfirmationTab()}
