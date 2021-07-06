@@ -10,7 +10,7 @@ class Extractor {
     
     constructor() {
         this.usedEthAddrsMap = new Set();
-        this.infuraProvider = new ethers.providers.InfuraProvider('mainnet', process.env.INFURA_PROJECT_ID);
+        this.infuraProvider = new ethers.providers.InfuraProvider(process.env.ETH_NETWORK, process.env.INFURA_PROJECT_ID);
         this.loadCache();
     }
 
@@ -46,7 +46,7 @@ class Extractor {
                 const ethTx = await this.infuraProvider.getTransaction(jsonTx.hash);
 
                 const tx = new EthTx.Transaction(ethTx.raw, {
-                    // "chain": "ropsten"
+                    "chain": process.env.ETH_NETWORK === 'mainnet' ? undefined : process.env.ETH_NETWORK
                 });
 
                 const addressByUncompressed = EthUtil.bufferToHex(tx.getSenderAddress()).toLowerCase();

@@ -6,7 +6,7 @@ class EtherscanApi {
 
     constructor(contractAddress) {
         this.startBlock = 0;
-        this.url = `https://api.etherscan.io/api?module=account&action=txlist&address=${contractAddress}&startblock={0}&endblock={1}&sort=asc&apikey=YourApiKeyToken`
+        this.url = `https://api${process.env.ETH_NETWORK === 'mainnet' ? '' : `-${process.env.ETH_NETWORK}`}.etherscan.io/api?module=account&action=txlist&address=${contractAddress}&startblock={0}&endblock={1}&sort=asc&apikey=YourApiKeyToken`
     }
 
     async fetchAllTransactions() {

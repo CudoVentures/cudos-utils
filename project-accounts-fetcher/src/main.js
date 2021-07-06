@@ -10,7 +10,7 @@ dotenv.config({
 });
 
 async function main() {
-    const etherscanApi = new EtherscanApi('0x817bbdbc3e8a1204f3691d14bb44992841e3db35');
+    const etherscanApi = new EtherscanApi(process.env.TARGET_ETH_ADDRESS);
     const extractor = new Extractor();
 
     const jsonTxs = await etherscanApi.fetchAllTransactions();
