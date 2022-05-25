@@ -10,3 +10,4 @@ node_modules
 cudos-noded
 libwasmvm.so
 wallets.env
+*.env
