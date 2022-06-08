@@ -9,9 +9,10 @@ import (
 
 var (
 	// based on the assumption that we have 1 block per 5 seconds
-	denom                 = "acudos"         // Hardcoded to the acudos currency. Its not changeable, because some of the math depends on the size of this denomination
-	totalDays             = sdk.NewInt(3652) // Hardcoded to 10 years
-	InitialNormTimePassed = sdk.NewDecWithPrec(9678829209, 10)
+	denom     = "acudos"         // Hardcoded to the acudos currency. Its not changeable, because some of the math depends on the size of this denomination
+	totalDays = sdk.NewInt(3652) // Hardcoded to 10 years
+	// InitialNormTimePassed = sdk.NewDecWithPrec(9678829209, 10)
+	InitialNormTimePassed = sdk.NewDecWithPrec(53172694105988, 14)
 	FinalNormTimePassed   = sdk.NewDec(10)
 	zeroPointSix          = sdk.MustNewDecFromStr("0.6")
 	twentySixPointFive    = sdk.MustNewDecFromStr("26.5")
