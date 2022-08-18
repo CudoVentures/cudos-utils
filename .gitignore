@@ -8,6 +8,7 @@ cudos-data
 node_modules
 .idea
 cudos-noded
+cosmovisor
 libwasmvm.so
 wallets.env
 *.env
