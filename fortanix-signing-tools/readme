@@ -1,0 +1,10 @@
+# Purpose
+The keys exported through the CLI are in raw hex format. In order to be able to import them into Fortanix DMS, they need to be converted into DER format. The script does that. It's use is as follows:
+```
+./raw_ec_to_der.sh --input=secp256k1.key --curve=secp256k1 --output=mykey.der
+```
+
+Where secp256k1.key is the key as exported from the CLI through this command:
+```
+cudos-noded keys export <key_name> --unsafe --unarmored_hex
+```
