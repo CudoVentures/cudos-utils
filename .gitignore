@@ -13,3 +13,5 @@ cosmovisor
 libwasmvm.so
 wallets.env
 *.env
+project-fix-public-testnet-genesis/*.export
+project-fix-public-testnet-genesis/*.json
